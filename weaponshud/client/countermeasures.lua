@@ -13,8 +13,21 @@ local flareSound = "flares_released"
 local flareSoundEmpty = "flares_empty"
 local flareSoundDict = "DLC_SM_Countermeasures_Sounds"
 local flareHash = GetHashKey("weapon_flaregun")
+local chaffPtfxAsset = "core"
+local chaffPtfxName = "exp_grd_grenade_smoke"
+local chaffPtfxLoadTimeoutMs = 1500
 
 local function nowMs() return GetGameTimer() end
+local function loadPtfxAsset(asset, timeoutMs)
+  if HasNamedPtfxAssetLoaded(asset) then return true end
+  RequestNamedPtfxAsset(asset)
+  local deadline = nowMs() + timeoutMs
+  while not HasNamedPtfxAssetLoaded(asset) do
+    if nowMs() >= deadline then return false end
+    Wait(0)
+  end
+  return true
+end
 
 local function activeSince(map, veh, seconds)
   local t = map[veh] or 0
@@ -114,9 +127,13 @@ function CM_DeployChaff(veh)
   Countermeasures.lastChaffUse = nowMs()
   Countermeasures.lastChaffAt[veh] = nowMs()
 
+  if not loadPtfxAsset(chaffPtfxAsset, chaffPtfxLoadTimeoutMs) then
+    return false
+  end
+
   local p = GetEntityCoords(veh)
-  UseParticleFxAssetNextCall("core")
-  StartParticleFxNonLoopedAtCoord("exp_grd_grenade_smoke", p.x, p.y, p.z, 0.0,0.0,0.0, 0.25, false,false,false)
+  UseParticleFxAssetNextCall(chaffPtfxAsset)
+  StartParticleFxNonLoopedAtCoord(chaffPtfxName, p.x, p.y, p.z, 0.0, 0.0, 0.0, 0.25, false, false, false)
 
   return true
 end
