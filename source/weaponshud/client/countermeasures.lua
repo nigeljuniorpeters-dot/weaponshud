@@ -13,8 +13,25 @@ local flareSound = "flares_released"
 local flareSoundEmpty = "flares_empty"
 local flareSoundDict = "DLC_SM_Countermeasures_Sounds"
 local flareHash = GetHashKey("weapon_flaregun")
+local chaffSpeed = -3.0
+local chaffSound = "chaff_released"
+local chaffSoundDict = "DLC_SM_Countermeasures_Sounds"
+local chaffHash = GetHashKey("weapon_smokegrenade")
 
 local function nowMs() return GetGameTimer() end
+
+local function loadWeaponAsset(hash, timeoutMs)
+  if not hash or hash == 0 then return false end
+  RequestWeaponAsset(hash, 31, 26)
+  local deadline = nowMs() + (timeoutMs or 800)
+  while not HasWeaponAssetLoaded(hash) do
+    if nowMs() > deadline then
+      return false
+    end
+    Wait(0)
+  end
+  return true
+end
 
 local function activeSince(map, veh, seconds)
   local t = map[veh] or 0
@@ -69,10 +86,7 @@ function CM_DeployFlare(veh)
 
   RequestScriptAudioBank(flareSoundDict)
   RequestModel(flareHash)
-  RequestWeaponAsset(flareHash, 31, 26)
-  while not HasWeaponAssetLoaded(flareHash) do
-    Wait(0)
-  end
+  if not loadWeaponAsset(flareHash, 800) then return false end
 
   local pos = GetEntityCoords(veh)
   local offsets = {
@@ -110,10 +124,7 @@ end
 function CM_DeployFlareRemote(veh)
   RequestScriptAudioBank(flareSoundDict)
   RequestModel(flareHash)
-  RequestWeaponAsset(flareHash, 31, 26)
-  while not HasWeaponAssetLoaded(flareHash) do
-    Wait(0)
-  end
+  if not loadWeaponAsset(flareHash, 800) then return end
 
   local pos = GetEntityCoords(veh)
   local offsets = {
@@ -162,10 +173,7 @@ end
 function CM_DeployChaffRemote(veh)
   RequestScriptAudioBank(chaffSoundDict)
   RequestModel(chaffHash)
-  RequestWeaponAsset(chaffHash, 31, 26)
-  while not HasWeaponAssetLoaded(chaffHash) do
-    Wait(0)
-  end
+  local hasWeaponAsset = loadWeaponAsset(chaffHash, 800)
 
   local pos = GetEntityCoords(veh)
   local offsets = {
@@ -174,25 +182,27 @@ function CM_DeployChaffRemote(veh)
   }
 
   PlaySoundFromEntity(-1, chaffSound, veh, chaffSoundDict, true)
-  for _, off in ipairs(offsets) do
-    ShootSingleBulletBetweenCoordsWithExtraParams(
-      pos,
-      off,
-      0,
-      true,
-      chaffHash,
-      PlayerPedId(),
-      true,
-      true,
-      chaffSpeed,
-      veh,
-      false,
-      false,
-      false,
-      true,
-      true,
-      false
-    )
+  if hasWeaponAsset then
+    for _, off in ipairs(offsets) do
+      ShootSingleBulletBetweenCoordsWithExtraParams(
+        pos,
+        off,
+        0,
+        true,
+        chaffHash,
+        PlayerPedId(),
+        true,
+        true,
+        chaffSpeed,
+        veh,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false
+      )
+    end
   end
 
   UseParticleFxAssetNextCall("core")
